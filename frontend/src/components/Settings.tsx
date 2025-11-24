@@ -53,7 +53,6 @@ function Settings({ address, email }: SettingsProps) {
       await registerEmail(username);
       setRegisterSuccess(true);
       setUsername('');
-      window.location.reload(); // Reload to show new email
     } catch (err: any) {
       setRegisterError(err.message || 'Failed to register email');
     } finally {

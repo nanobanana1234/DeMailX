@@ -94,10 +94,14 @@ async function writeContract(functionName: string, args: Args): Promise<void> {
     throw new Error('No account connected. Please connect wallet first.');
   }
   const sc = new SmartContract(walletProvider || provider, CONTRACT_ADDRESS);
-  await sc.call(functionName, args, {
+  const op = await sc.call(functionName, args, {
     coins: Mas.fromString('0.01'),
     maxGas: 200000000n,
   });
+  const status = await op.waitFinalExecution(60000, 1000);
+  if (status !== 4) { // OperationStatus.Success
+    throw new Error('Transaction failed or not finalized');
+  }
 }
 
 /**
@@ -160,25 +164,40 @@ export async function sendMessage(
     .addString(body)
     .addString(isEncrypted ? '1' : '0');
   
-  await sc.call('createMessage', createArgs, {
+  const createOp = await sc.call('createMessage', createArgs, {
     coins: Mas.fromString('0.01'),
     maxGas: 200000000n,
   });
+  const createStatus = await createOp.waitFinalExecution(60000, 1000);
+  if (createStatus !== 4) {
+    throw new Error('Create message failed or not finalized');
+  }
+  const createEvents = await createOp.getFinalEvents();
+  let messageId = Date.now().toString();
+  if (createEvents?.length) {
+    const lastEvt = [...createEvents].reverse().find((e: any) => typeof e.data === 'string' && e.data.startsWith('Message created: '));
+    if (lastEvt) {
+      const m = /Message created:\s*(\d+)/.exec(lastEvt.data as string);
+      if (m && m[1]) messageId = m[1];
+    }
+  }
   
   // Note: Getting message ID from createMessage return value requires reading events
   // For now, we'll use a timestamp-based ID as workaround
   // In production, you'd read the return value or events
-  const messageId = Date.now().toString();
-  
   // Send message
   const sendArgs = new Args()
     .addString(toAddress)
     .addString(messageId);
   
-  await sc.call('sendMessage', sendArgs, {
+  const sendOp = await sc.call('sendMessage', sendArgs, {
     coins: Mas.fromString('0.01'),
     maxGas: 200000000n,
   });
+  const sendStatus = await sendOp.waitFinalExecution(60000, 1000);
+  if (sendStatus !== 4) {
+    throw new Error('Send message failed or not finalized');
+  }
   
   return messageId;
 }
