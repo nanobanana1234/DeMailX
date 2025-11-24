@@ -96,7 +96,7 @@ async function writeContract(functionName: string, args: Args): Promise<void> {
   const sc = new SmartContract(walletProvider || provider, CONTRACT_ADDRESS);
   await sc.call(functionName, args, {
     coins: Mas.fromString('0.01'),
-    maxGas: 200000000,
+    maxGas: 200000000n,
   });
 }
 
@@ -162,7 +162,7 @@ export async function sendMessage(
   
   await sc.call('createMessage', createArgs, {
     coins: Mas.fromString('0.01'),
-    maxGas: 200000000,
+    maxGas: 200000000n,
   });
   
   // Note: Getting message ID from createMessage return value requires reading events
@@ -177,7 +177,7 @@ export async function sendMessage(
   
   await sc.call('sendMessage', sendArgs, {
     coins: Mas.fromString('0.01'),
-    maxGas: 200000000,
+    maxGas: 200000000n,
   });
   
   return messageId;
