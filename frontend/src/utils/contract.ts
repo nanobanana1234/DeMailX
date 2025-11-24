@@ -6,9 +6,11 @@ import {
   SmartContract,
   bytesToStr,
   Mas,
+  PublicApiUrl,
 } from '@massalabs/massa-web3';
 
 export const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS || '';
+export const NETWORK = (import.meta.env.VITE_MASSA_NETWORK || 'testnet').toLowerCase();
 
 // Initialize provider
 let provider: JsonRpcProvider | null = null;
@@ -30,7 +32,9 @@ export async function initClient(secretKey?: string): Promise<JsonRpcProvider> {
   }
 
   const acc = await Account.fromPrivateKey(keyToUse as string);
-  const prov = JsonRpcProvider.buildnet(acc);
+  const prov = NETWORK === 'buildnet'
+    ? JsonRpcProvider.buildnet(acc)
+    : JsonRpcProvider.fromRPCUrl(PublicApiUrl.Testnet, acc) as JsonRpcProvider;
 
   account = acc;
   provider = prov;
@@ -77,7 +81,9 @@ async function readContract(functionName: string, args: Args): Promise<string> {
   if (!CONTRACT_ADDRESS) {
     throw new Error('Contract address not configured. Set VITE_CONTRACT_ADDRESS');
   }
-  const prov: any = JsonRpcProvider.buildnet();
+  const prov: any = NETWORK === 'buildnet'
+    ? JsonRpcProvider.buildnet()
+    : JsonRpcProvider.fromRPCUrl(PublicApiUrl.Testnet);
   const sc = new SmartContract(prov, CONTRACT_ADDRESS);
   const result = await sc.read(functionName, args);
   return bytesToStr(result.value);
@@ -162,11 +168,11 @@ export async function sendMessage(
   const toAddress = await getAddressByEmail(toEmail);
   if (!toAddress) throw new Error('Recipient email not found');
   
-  if (!provider || !account) {
+  if (!walletProvider && (!provider || !account)) {
     throw new Error('No account connected. Please connect wallet first.');
   }
   
-  const sc = new SmartContract(provider, CONTRACT_ADDRESS);
+  const sc = new SmartContract(walletProvider || provider, CONTRACT_ADDRESS);
   
   // Create message
   const createArgs = new Args()
