@@ -81,9 +81,11 @@ async function readContract(functionName: string, args: Args): Promise<string> {
   if (!CONTRACT_ADDRESS) {
     throw new Error('Contract address not configured. Set VITE_CONTRACT_ADDRESS');
   }
-  const prov: any = NETWORK === 'buildnet'
-    ? JsonRpcProvider.buildnet()
-    : JsonRpcProvider.fromRPCUrl(PublicApiUrl.Testnet);
+  const prov: any = walletProvider || provider || (
+    NETWORK === 'buildnet'
+      ? JsonRpcProvider.buildnet()
+      : JsonRpcProvider.fromRPCUrl(PublicApiUrl.Testnet)
+  );
   const sc = new SmartContract(prov, CONTRACT_ADDRESS);
   const result = await sc.read(functionName, args);
   return bytesToStr(result.value);
