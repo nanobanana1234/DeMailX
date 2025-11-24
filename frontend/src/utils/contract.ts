@@ -94,7 +94,10 @@ async function writeContract(functionName: string, args: Args): Promise<void> {
     throw new Error('No account connected. Please connect wallet first.');
   }
   const sc = new SmartContract(walletProvider || provider, CONTRACT_ADDRESS);
-  await sc.call(functionName, args, { coins: Mas.fromString('0') });
+  await sc.call(functionName, args, {
+    coins: Mas.fromString('0.01'),
+    maxGas: 200000000,
+  });
 }
 
 /**
@@ -157,7 +160,10 @@ export async function sendMessage(
     .addString(body)
     .addString(isEncrypted ? '1' : '0');
   
-  await sc.call('createMessage', createArgs, { coins: Mas.fromString('0') });
+  await sc.call('createMessage', createArgs, {
+    coins: Mas.fromString('0.01'),
+    maxGas: 200000000,
+  });
   
   // Note: Getting message ID from createMessage return value requires reading events
   // For now, we'll use a timestamp-based ID as workaround
@@ -169,7 +175,10 @@ export async function sendMessage(
     .addString(toAddress)
     .addString(messageId);
   
-  await sc.call('sendMessage', sendArgs, { coins: Mas.fromString('0') });
+  await sc.call('sendMessage', sendArgs, {
+    coins: Mas.fromString('0.01'),
+    maxGas: 200000000,
+  });
   
   return messageId;
 }
