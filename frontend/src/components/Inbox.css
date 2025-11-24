@@ -1,0 +1,267 @@
+.inbox-container {
+  background: white;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.inbox-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid #e8eaed;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  min-height: 64px;
+}
+
+.inbox-header h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.filter-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.filter-buttons button {
+  padding: 8px 16px;
+  border: 1px solid #d1d5db;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #6b7280;
+  transition: all 0.2s;
+}
+
+.filter-buttons button:hover {
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.filter-buttons button.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.inbox-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.message-list {
+  width: 35%;
+  min-width: 300px;
+  border-right: 1px solid #e8eaed;
+  overflow-y: auto;
+  background: white;
+}
+
+.message-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f3f4;
+  cursor: pointer;
+  transition: background 0.1s;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.message-item:hover {
+  background: #f8f9fa;
+  box-shadow: inset 0 -1px 0 0 #f1f3f4;
+}
+
+.message-item.selected {
+  background: #f1f3f4;
+}
+
+.message-item.unread {
+  background: white;
+  font-weight: 600;
+}
+
+.message-item.unread .message-subject {
+  font-weight: 600;
+  color: #202124;
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.message-from {
+  font-weight: 500;
+  color: #202124;
+  font-size: 14px;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.message-time {
+  font-size: 12px;
+  color: #5f6368;
+  white-space: nowrap;
+}
+
+.message-subject {
+  color: #5f6368;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 400;
+}
+
+.unread-badge {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: #1a73e8;
+  color: white;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+  min-width: 18px;
+  text-align: center;
+}
+
+.message-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  overflow: hidden;
+}
+
+.message-view-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid #e8eaed;
+  display: flex;
+  justify-content: flex-end;
+  background: white;
+  min-height: 64px;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.close-button:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.message-content {
+  flex: 1;
+  padding: 24px 32px;
+  overflow-y: auto;
+  background: white;
+}
+
+.message-meta {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e8eaed;
+}
+
+.message-meta div {
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #5f6368;
+}
+
+.message-meta strong {
+  color: #202124;
+  margin-right: 8px;
+  font-weight: 500;
+}
+
+.message-body {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #202124;
+  white-space: pre-wrap;
+  margin-bottom: 24px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.message-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid #e8eaed;
+}
+
+.action-button {
+  padding: 8px 16px;
+  border: 1px solid #dadce0;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #5f6368;
+  transition: all 0.15s;
+  font-weight: 500;
+}
+
+.action-button:hover {
+  background: #f8f9fa;
+  border-color: #dadce0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.action-button.spam:hover {
+  background: #fce8e6;
+  border-color: #f28b82;
+  color: #c5221f;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #9ca3af;
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  .inbox-layout {
+    flex-direction: column;
+    height: auto;
+  }
+  
+  .message-list {
+    width: 100%;
+    max-height: 300px;
+  }
+  
+  .message-view {
+    min-height: 400px;
+  }
+}
+

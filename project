@@ -1,0 +1,477 @@
+How DeMailX Feels to a Normal User
+
+Think of your app like a webmail client (Gmail-style) but powered only by Massa.
+
+1. Signup / Get Email ID
+
+Flow:
+
+User opens demailx.massafrontend.massa (your DeWeb site).
+
+Connects wallet (Massa Station / Bearby).
+
+Chooses an email ID:
+Example: nikku → nikku@demailx.
+
+Clicks “Register Email ID”.
+
+A transaction is sent to EmailIDRegistry contract:
+
+Mints an EmailID NFT to user’s wallet.
+
+Saves mapping: nikku@demailx → user_address.
+
+Creates an inbox for this address.
+
+From user side: they just see a simple signup form and then their inbox appears.
+
+2. Inbox Screen
+
+Once registered, they see an interface like:
+
+Sidebar: Inbox, Sent, Spam, Archived, Settings
+
+Inbox List:
+Each row = message:
+
+Sender address or name
+
+Subject
+
+Short preview
+
+Time
+
+Unread badge
+
+When they click a message:
+
+DeMailX:
+
+Fetches message metadata from Inbox contract.
+
+Fetches the message body (cipher text).
+
+Decrypts locally in the browser (private key / password).
+
+Renders plain text.
+
+3. Sending an Email
+
+Flow:
+
+User clicks “Compose”.
+
+Fields:
+
+To: friend@demailx
+
+Subject: “Hey 😄”
+
+Body: “What’s up?”
+
+Optional attachment (file → encrypted + uploaded)
+
+Frontend:
+
+Looks up friend@demailx in EmailIDRegistry → get wallet address.
+
+Prepares encrypted content (important: encryption happens in browser, not on-chain).
+
+Calls sendMessage() on DeMailX contract with:
+
+recipient address
+
+subject (maybe plain or partially obfuscated)
+
+cipher body (or IPFS hash)
+
+Contract:
+
+Creates a Message struct.
+
+Appends message ID to recipient’s inbox list.
+
+Appends message ID to sender’s sent list.
+
+User sees: “Message sent ✅”.
+
+4. Spam + Auto-Forward (User POV)
+
+In Settings tab, user can choose:
+
+Block list (addresses or domains)
+
+Auto-forward rules:
+
+Forward all emails from X to Y.
+
+Forward emails with subject containing [URGENT] to another on-chain email.
+
+Auto-delete / archive:
+
+“Archive emails older than 30 days”
+
+“Delete spam older than 7 days”
+
+User just clicks checkboxes + dropdowns.
+Under the hood, these rules are stored in an on-chain UserSettings mapping, and Autonomous Smart Contracts read & apply them periodically.
+
+5. Message Expiry + Cleanup
+
+User doesn’t see the complexity.
+They only see:
+
+Older mails removed or archived automatically.
+
+Spam folder cleaned automatically.
+
+Maybe a banner: “We automatically cleaned 53 old messages this week.”
+
+All the logic is performed by the ASC in background.
+
+2️⃣ System Architecture – How DeMailX Is Structured
+🔹 Components Overview
+
+You’ll build:
+
+EmailIDRegistry contract
+
+Maps username to wallet address.
+
+Mints an EmailID NFT to prove identity & ownership.
+
+Handles renewal / expiry.
+
+InboxManager contract
+
+Stores inbox & sent lists per user.
+
+References actual messages (by ID).
+
+Read/write operations: list inbox messages, mark as read, etc.
+
+MessageStore contract
+
+Stores message metadata & (maybe) body or IPFS hash.
+
+message_id → struct.
+
+UserSettings contract
+
+Stores spam rules, auto-forward rules, expiry settings.
+
+user_address → Settings.
+
+Autonomous Worker contract (ASC)
+
+Runs periodically.
+
+Applies:
+
+auto-forward
+
+auto-archive
+
+auto-delete
+
+spam blocking
+
+DeWeb Frontend
+
+React app, compiled static.
+
+Deployed on DeWeb via Massa.
+
+Talks directly to contracts via Massa JS SDK.
+
+3️⃣ Data Model – What You Store On-Chain
+
+Let’s define some pseudo-Typescript/AssemblyScript types.
+
+1. Email ID Registry
+type EmailId = string; // "nikku@demailx"
+
+type EmailRecord = {
+  owner: Address,
+  createdAt: u64,
+  expiresAt: u64,
+  nftId: u64,
+};
+
+
+Storage:
+
+emailByName: Map<EmailId, EmailRecord>
+
+emailsByOwner: Map<Address, EmailId[]>
+
+2. Message
+type MessageId = u64;
+
+type Message = {
+  from: Address,
+  to: Address,
+  subject: string,          // may be plain text
+  bodyRef: string,          // encrypted body or IPFS hash
+  timestamp: u64,
+  isEncrypted: bool,
+};
+
+
+Storage (in MessageStore):
+
+messages: Map<MessageId, Message>
+
+nextMessageId: u64
+
+3. Inbox & Sent Items
+type InboxEntry = {
+  messageId: MessageId,
+  isRead: bool,
+  isArchived: bool,
+  isSpam: bool,
+};
+
+type UserMailbox = {
+  inbox: InboxEntry[],
+  sent: MessageId[],
+};
+
+
+Storage (in InboxManager):
+
+mailboxByUser: Map<Address, UserMailbox>
+
+4. User Settings
+type AutoForwardRule = {
+  conditionType: "SENDER" | "SUBJECT_CONTAINS",
+  value: string,      // address or substring
+  forwardTo: Address, // another email owner
+};
+
+type UserSettings = {
+  spamList: Address[],
+  maxInboxDays: u32,       // e.g. 60 days
+  maxSpamDays: u32,        // e.g. 7 days
+  autoForwardRules: AutoForwardRule[],
+};
+
+
+Storage (in UserSettings contract):
+
+settingsByUser: Map<Address, UserSettings>
+
+4️⃣ How Autonomous Smart Contracts Work Here (On Massa)
+
+Now the fun part: no backend, all automation done on-chain.
+
+We’ll use Massa’s Autonomous Smart Contracts (a.k.a. deferred/self-calling smart contracts).
+
+🎯 ASC Job Types in DeMailX
+
+Auto-forward worker
+
+Inbox cleanup worker
+
+Spam cleanup worker
+
+EmailID renewal checker (optional)
+
+1. Auto-Forward Worker
+
+Runs every, say, 1 hour.
+
+High-level logic:
+
+function processAutoForwardBatch(): void {
+  // iterate through a batch of users (e.g. 50 per execution to avoid gas limits)
+  for each user in userList[batchRange] {
+    let settings = settingsByUser[user];
+    let mailbox = mailboxByUser[user];
+
+    for each entry in mailbox.inbox {
+      if (!entry.isRead) {
+        let msg = messages[entry.messageId];
+
+        for each rule in settings.autoForwardRules {
+          if (matches(rule, msg)) {
+            forwardMessage(user, rule.forwardTo, msg);
+          }
+        }
+      }
+    }
+  }
+
+  // schedule itself again
+  scheduleNextRun(...); // Massa-specific deferred call / ASC API
+}
+
+
+Key point:
+The ASC is self-scheduling — at the end of execution it calls itself with a deferred call to run again later.
+
+2. Inbox Cleanup Worker
+
+Runs once per day.
+
+function cleanOldMessages(): void {
+  let now = currentTime();
+
+  for each user in userList[batchRange] {
+    let settings = settingsByUser[user];
+    let mailbox = mailboxByUser[user];
+
+    mailbox.inbox = mailbox.inbox.filter(entry => {
+      let msg = messages[entry.messageId];
+      let ageDays = (now - msg.timestamp) / DAY_IN_SECONDS;
+
+      if (entry.isSpam && ageDays > settings.maxSpamDays) {
+        // delete spam
+        delete messages[entry.messageId];
+        return false;
+      }
+
+      if (!entry.isSpam && ageDays > settings.maxInboxDays) {
+        // auto-archive or delete based on your design
+        // e.g., move to archive list or just discard
+        return false;
+      }
+
+      return true;
+    });
+  }
+
+  scheduleNextRunTomorrow();
+}
+
+3. Spam Worker
+
+Could:
+
+Mark sender as spam if they send too many messages within a short period.
+
+Auto-move messages from that sender to isSpam = true.
+
+This is another periodic ASC job.
+
+4. EmailID Renewal Checker (Optional)
+
+If you want @demailx IDs to expire, you can:
+
+Store expiresAt in EmailRecord.
+
+ASC checks every day and marks expired ones as free to re-register.
+
+5️⃣ What You Have To Build on Massa (Concrete To-Do List)
+✅ 1. Smart Contracts
+
+You’ll write a Massa AssemblyScript / TypeScript project containing:
+
+EmailIDRegistry
+
+registerEmail(username)
+
+renewEmail(username)
+
+transferEmail(username, newOwner)
+
+resolve(username) → address
+
+MessageStore
+
+createMessage(from, to, subject, bodyRef, isEncrypted) → messageId
+
+getMessage(messageId)
+
+InboxManager
+
+sendMessage(toUsername, subject, bodyRef, isEncrypted)
+
+resolves username → address
+
+calls MessageStore.createMessage
+
+adds to sender.sent & receiver.inbox
+
+listInbox(offset, limit)
+
+listSent(offset, limit)
+
+markRead(messageId)
+
+markSpam(messageId)
+
+archiveMessage(messageId)
+
+UserSettings
+
+setSpamList(addresses[])
+
+addAutoForwardRule(rule)
+
+removeAutoForwardRule(id)
+
+setInboxRetention(days)
+
+DeMailXWorker (ASC)
+
+processAutoForwardBatch(startIndex, batchSize)
+
+cleanOldMessagesBatch(startIndex, batchSize)
+
+Each function schedules itself via deferred calls.
+
+✅ 2. DeWeb Frontend
+
+A React app with pages:
+
+/signup
+
+/inbox
+
+/sent
+
+/spam
+
+/settings
+
+Each page:
+
+Connect wallet.
+
+Calls Massa SDK to read/write to your contracts.
+
+Encrypt/decrypt email bodies locally.
+
+You then:
+
+Build the React app → static HTML/JS/CSS.
+
+Deploy to DeWeb via Massa’s tooling (massa-deploy-web or similar) so the frontend is also unstoppable.
+
+✅ 3. Crypto / Encryption Layer
+
+Because blockchain data is public, you MUST NOT store plain message content.
+
+Simple way (for hackathon):
+
+When user signs up, front-end generates a symmetric encryption key (e.g. AES).
+
+Encrypts message bodies with that key.
+
+Stores only ciphertext or IPFS hash on-chain.
+
+Stores key in local storage or prompts user to save it.
+
+You can mention in docs:
+
+“For hackathon demo, we use simple browser-side encryption; in production this could integrate with wallet-level encryption.”
+
+Judges will appreciate the privacy thought.
+
+6️⃣ How It All Looks In Your README (Short Summary You Can Reuse)
+
+DeMailX is a fully on-chain, autonomous, decentralized email system built on Massa.
+User identities are represented as NFT-based email IDs, inboxes and messages are stored on-chain, and all automation (spam filtering, auto-forwarding, cleanup) is powered by Autonomous Smart Contracts.
+The frontend is deployed on DeWeb, making the whole email service unstoppable and trustless — no centralized servers, no traditional email providers.

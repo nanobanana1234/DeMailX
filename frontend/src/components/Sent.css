@@ -1,0 +1,161 @@
+.sent-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.sent-header {
+  padding: 24px 30px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.sent-header h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.sent-layout {
+  display: flex;
+  height: calc(100vh - 250px);
+  min-height: 500px;
+}
+
+.message-list {
+  width: 40%;
+  border-right: 1px solid #e5e7eb;
+  overflow-y: auto;
+  background: #f9fafb;
+}
+
+.message-item {
+  padding: 20px;
+  border-bottom: 1px solid #e5e7eb;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.message-item:hover {
+  background: #f3f4f6;
+}
+
+.message-item.selected {
+  background: #eef2ff;
+  border-left: 3px solid #667eea;
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.message-to {
+  font-weight: 600;
+  color: #111827;
+  font-size: 15px;
+}
+
+.message-time {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.message-subject {
+  color: #4b5563;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.message-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: white;
+}
+
+.message-view-header {
+  padding: 20px 30px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.close-button:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.message-content {
+  flex: 1;
+  padding: 30px;
+  overflow-y: auto;
+}
+
+.message-meta {
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.message-meta div {
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.message-meta strong {
+  color: #111827;
+  margin-right: 8px;
+}
+
+.message-body {
+  font-size: 16px;
+  line-height: 1.8;
+  color: #111827;
+  white-space: pre-wrap;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #9ca3af;
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  .sent-layout {
+    flex-direction: column;
+    height: auto;
+  }
+  
+  .message-list {
+    width: 100%;
+    max-height: 300px;
+  }
+  
+  .message-view {
+    min-height: 400px;
+  }
+}
+
