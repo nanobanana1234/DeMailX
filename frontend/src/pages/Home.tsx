@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { connectWallet } from '../utils/wallet';
+import { connectWallet, connectWithUiWallet } from '../utils/wallet';
 import './Home.css';
 
 interface HomeProps {
@@ -12,21 +12,26 @@ function Home({ onConnect }: HomeProps) {
   const [loading, setLoading] = useState(false);
 
   const handleConnect = async () => {
-    if (!secretKey.trim()) {
-      setError('Please enter your wallet secret key');
-      return;
-    }
-
     setLoading(true);
     setError('');
 
     try {
-      await connectWallet(secretKey);
-      const { initClient } = await import('../utils/contract');
-      await initClient(secretKey);
+      // Prefer UI wallet (Bearby/Massa Station) if available
+      try {
+        const { provider } = await connectWithUiWallet();
+        const { setWalletProvider } = await import('../utils/contract');
+        setWalletProvider(provider);
+      } catch (walletErr) {
+        if (!secretKey.trim()) {
+          throw new Error('No wallet extension found. Enter secret key to connect');
+        }
+        await connectWallet(secretKey);
+        const { initClient } = await import('../utils/contract');
+        await initClient(secretKey);
+      }
       onConnect();
     } catch (err) {
-      setError('Invalid secret key. Please try again.');
+      setError((err as any)?.message || 'Failed to connect wallet');
       console.error(err);
     } finally {
       setLoading(false);
@@ -101,6 +106,9 @@ function Home({ onConnect }: HomeProps) {
             >
               {loading ? 'Connecting...' : 'Connect Wallet & Get Mail'}
             </button>
+            <p className="help-text">
+              Prefer extension? Click connect and we’ll use Bearby/MassaStation if installed.
+            </p>
             <p className="help-text">
               Don't have a wallet? Download{' '}
               <a href="https://station.massa.net" target="_blank" rel="noopener noreferrer">

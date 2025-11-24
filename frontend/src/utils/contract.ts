@@ -14,6 +14,7 @@ export const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS || '';
 let provider: JsonRpcProvider | null = null;
 let account: Account | null = null;
 let accountAddress: string | null = null;
+let walletProvider: any | null = null;
 
 /**
  * Initialize Massa provider
@@ -37,6 +38,17 @@ export async function initClient(secretKey?: string): Promise<JsonRpcProvider> {
   localStorage.setItem('demailx_wallet_address', accountAddress || '');
 
   return prov;
+}
+
+/**
+ * Set provider from UI wallet (Bearby/MassaStation)
+ */
+export function setWalletProvider(p: any): void {
+  walletProvider = p;
+  account = null; // not needed when using wallet provider
+  provider = null; // not used; SmartContract will use walletProvider directly
+  accountAddress = p.address;
+  localStorage.setItem('demailx_wallet_address', accountAddress || '');
 }
 
 /**
@@ -65,7 +77,7 @@ async function readContract(functionName: string, args: Args): Promise<string> {
   if (!CONTRACT_ADDRESS) {
     throw new Error('Contract address not configured. Set VITE_CONTRACT_ADDRESS');
   }
-  const prov: any = JsonRpcProvider.buildnet(); // Public provider for reads
+  const prov: any = JsonRpcProvider.buildnet();
   const sc = new SmartContract(prov, CONTRACT_ADDRESS);
   const result = await sc.read(functionName, args);
   return bytesToStr(result.value);
@@ -78,10 +90,10 @@ async function writeContract(functionName: string, args: Args): Promise<void> {
   if (!CONTRACT_ADDRESS) {
     throw new Error('Contract address not configured. Set VITE_CONTRACT_ADDRESS');
   }
-  if (!provider || !account) {
+  if (!walletProvider && (!provider || !account)) {
     throw new Error('No account connected. Please connect wallet first.');
   }
-  const sc = new SmartContract(provider, CONTRACT_ADDRESS);
+  const sc = new SmartContract(walletProvider || provider, CONTRACT_ADDRESS);
   await sc.call(functionName, args, { coins: Mas.fromString('0') });
 }
 
