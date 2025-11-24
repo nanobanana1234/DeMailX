@@ -11,6 +11,8 @@ import './Dashboard.css';
 function Dashboard() {
   const [address, setAddress] = useState<string | null>(null);
   const [email, setEmail] = useState<string>('');
+  const [inboxCount, setInboxCount] = useState<number>(0);
+  const [sentCount, setSentCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -25,12 +27,13 @@ function Dashboard() {
 
         setAddress(addr);
         await initClient();
-        
-        // Try to get email
         const userEmail = await getEmailByAddress(addr);
-        if (userEmail) {
-          setEmail(userEmail);
-        }
+        if (userEmail) setEmail(userEmail);
+        const { getInbox, getSent } = await import('../utils/contract');
+        const inbox = await getInbox(addr);
+        const sent = await getSent(addr);
+        setInboxCount(inbox.length);
+        setSentCount(sent.length);
       } catch (error) {
         console.error('Error loading dashboard:', error);
       } finally {
@@ -63,6 +66,7 @@ function Dashboard() {
           <div className="user-info">
             {email && <span className="user-email">{email}</span>}
             <span className="user-address">{address?.substring(0, 8)}...{address?.substring(address.length - 6)}</span>
+            <span className="user-counters">📥 {inboxCount} • 📤 {sentCount}</span>
             <button onClick={handleDisconnect} className="disconnect-button">
               Disconnect
             </button>
@@ -98,7 +102,7 @@ function Dashboard() {
             <Route path="/inbox" element={<Inbox address={address!} />} />
             <Route path="/sent" element={<Sent address={address!} />} />
             <Route path="/compose" element={<Compose address={address!} email={email} />} />
-            <Route path="/settings" element={<Settings address={address!} email={email} />} />
+            <Route path="/settings" element={<Settings address={address!} email={email} onEmailRegistered={(e) => setEmail(e)} />} />
           </Routes>
         </main>
       </div>

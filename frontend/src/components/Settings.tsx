@@ -6,9 +6,10 @@ import './Settings.css';
 interface SettingsProps {
   address: string;
   email: string;
+  onEmailRegistered?: (email: string) => void;
 }
 
-function Settings({ address, email }: SettingsProps) {
+function Settings({ address, email, onEmailRegistered }: SettingsProps) {
   const [username, setUsername] = useState('');
   const [registering, setRegistering] = useState(false);
   const [registerError, setRegisterError] = useState('');
@@ -50,9 +51,10 @@ function Settings({ address, email }: SettingsProps) {
     setRegisterSuccess(false);
 
     try {
-      await registerEmail(username);
+      const newEmail = await registerEmail(username);
       setRegisterSuccess(true);
       setUsername('');
+      if (onEmailRegistered) onEmailRegistered(newEmail);
     } catch (err: any) {
       setRegisterError(err.message || 'Failed to register email');
     } finally {

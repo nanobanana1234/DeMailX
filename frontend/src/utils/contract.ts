@@ -95,7 +95,7 @@ async function writeContract(functionName: string, args: Args): Promise<void> {
   }
   const sc = new SmartContract(walletProvider || provider, CONTRACT_ADDRESS);
   const op = await sc.call(functionName, args, {
-    coins: Mas.fromString('0.01'),
+    coins: Mas.fromString('0.05'),
     maxGas: 200000000n,
   });
   const status = await op.waitFinalExecution(60000, 1000);
@@ -108,8 +108,20 @@ async function writeContract(functionName: string, args: Args): Promise<void> {
  * Register email
  */
 export async function registerEmail(username: string): Promise<string> {
-  await writeContract('registerEmail', new Args().addString(username));
-  return `${username}@demailx`;
+  const caller = getCurrentAccountAddress();
+  if (!caller) throw new Error('No account connected');
+
+  try {
+    await writeContract('registerEmail', new Args().addString(username));
+  } catch (err) {
+    // Continue to verify on-chain state; if email already exists, surface it
+  }
+
+  const storedEmail = await getEmailByAddress(caller);
+  if (storedEmail) {
+    return storedEmail;
+  }
+  throw new Error('Registration failed. Username may be taken or insufficient funds');
 }
 
 /**
